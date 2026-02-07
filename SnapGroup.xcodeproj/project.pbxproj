@@ -272,6 +272,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				OTHER_CODE_SIGN_FLAGS = "--requirements '=designated => identifier \"dev.samib.SnapGroup\"'";
 				PRODUCT_BUNDLE_IDENTIFIER = dev.samib.SnapGroup;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -340,14 +341,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		26F0914C2EFD13D6001BE9CF /* XCRemoteSwiftPackageReference "HotKey" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/soffes/HotKey";
-			requirement = {
-				branch = main;
-				kind = branch;
+			26F0914C2EFD13D6001BE9CF /* XCRemoteSwiftPackageReference "HotKey" */ = {
+				isa = XCRemoteSwiftPackageReference;
+				repositoryURL = "https://github.com/soffes/HotKey";
+				requirement = {
+					kind = revision;
+					revision = a3cf605d7a96f6ff50e04fcb6dea6e2613cfcbe4;
+				};
 			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */

@@ -10,9 +10,12 @@ import Cocoa
 class MenuBarController {
     private var statusItem: NSStatusItem!
     private let groupManager: GroupManager
+    private weak var appDelegate: AppDelegate?
+    private var isUpdatingMenu = false
 
-    init(groupManager: GroupManager) {
+    init(groupManager: GroupManager, appDelegate: AppDelegate) {
         self.groupManager = groupManager
+        self.appDelegate = appDelegate
         setupStatusItem()
 
         // Subscribe to group changes
@@ -32,7 +35,12 @@ class MenuBarController {
     }
 
     func updateMenu() {
+        guard !isUpdatingMenu else { return }
+        isUpdatingMenu = true
+        defer { isUpdatingMenu = false }
+
         let menu = NSMenu()
+        let settings = HotkeySettings.shared
 
         // Header
         let headerItem = NSMenuItem(title: "SnapGroup", action: nil, keyEquivalent: "")
@@ -64,8 +72,9 @@ class MenuBarController {
 
                 submenu.addItem(NSMenuItem.separator())
 
-                // Recall action
-                let recallItem = NSMenuItem(title: "Recall (Cmd+\(i))", action: #selector(recallGroup(_:)), keyEquivalent: "")
+                // Recall action with dynamic hotkey
+                let recallHotkey = settings.recallBindings[i]?.displayString ?? "Not set"
+                let recallItem = NSMenuItem(title: "Recall (\(recallHotkey))", action: #selector(recallGroup(_:)), keyEquivalent: "")
                 recallItem.target = self
                 recallItem.tag = i
                 submenu.addItem(recallItem)
@@ -86,18 +95,22 @@ class MenuBarController {
 
         menu.addItem(NSMenuItem.separator())
 
-        // Hotkey help
+        // Hotkey help - show current bindings
         let helpItem = NSMenuItem(title: "Hotkeys", action: nil, keyEquivalent: "")
         helpItem.isEnabled = false
         menu.addItem(helpItem)
 
-        let tagHelpItem = NSMenuItem(title: "  Tag: Cmd+Shift+[1-5]", action: nil, keyEquivalent: "")
-        tagHelpItem.isEnabled = false
-        menu.addItem(tagHelpItem)
+        // Show first recall/tag binding as example
+        let recallExample = settings.recallBindings[1]?.displayString ?? "Not set"
+        let tagExample = settings.tagBindings[1]?.displayString ?? "Not set"
 
-        let recallHelpItem = NSMenuItem(title: "  Recall: Cmd+[1-5]", action: nil, keyEquivalent: "")
+        let recallHelpItem = NSMenuItem(title: "  Recall: \(recallExample)...", action: nil, keyEquivalent: "")
         recallHelpItem.isEnabled = false
         menu.addItem(recallHelpItem)
+
+        let tagHelpItem = NSMenuItem(title: "  Tag: \(tagExample)...", action: nil, keyEquivalent: "")
+        tagHelpItem.isEnabled = false
+        menu.addItem(tagHelpItem)
 
         menu.addItem(NSMenuItem.separator())
 
@@ -107,6 +120,11 @@ class MenuBarController {
         menu.addItem(clearAllItem)
 
         menu.addItem(NSMenuItem.separator())
+
+        // Preferences
+        let prefsItem = NSMenuItem(title: "Preferences...", action: #selector(showPreferences), keyEquivalent: ",")
+        prefsItem.target = self
+        menu.addItem(prefsItem)
 
         // Quit
         let quitItem = NSMenuItem(title: "Quit SnapGroup", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -125,5 +143,9 @@ class MenuBarController {
 
     @objc private func clearAllGroups() {
         groupManager.clearAllGroups()
+    }
+
+    @objc private func showPreferences() {
+        appDelegate?.showPreferences()
     }
 }

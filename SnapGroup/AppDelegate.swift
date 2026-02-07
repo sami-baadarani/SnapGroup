@@ -13,21 +13,37 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     let groupManager = GroupManager()
     var menuBarController: MenuBarController!
+    var preferencesWindowController: PreferencesWindowController!
     var hotKeys: [HotKey] = []
+    private var isPresentingAlert = false
+    private var lastHotkeyWarningSignature: String?
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        // Check for Accessibility Permissions on launch
-        if !groupManager.checkPermissions() {
-            print("Please grant accessibility permissions in System Settings > Privacy & Security > Accessibility")
+        // Check permission status on launch, but request on-demand from real AX failures.
+        if !groupManager.checkPermissions(prompt: false) {
+            print("Accessibility permission not confirmed at launch. SnapGroup will request it when needed.")
         }
 
-        // Setup menu bar
-        menuBarController = MenuBarController(groupManager: groupManager)
+        // Setup preferences window controller
+        preferencesWindowController = PreferencesWindowController()
 
-        // Setup hotkeys
-        setupHotkeys()
+        // Setup menu bar (pass self for preferences action)
+        menuBarController = MenuBarController(groupManager: groupManager, appDelegate: self)
 
-        print("SnapGroup is running. Use Cmd+Shift+[1-5] to tag windows, Cmd+[1-5] to recall.")
+        groupManager.onUserMessage = { [weak self] message in
+            self?.showAlert(title: "SnapGroup", message: message)
+        }
+
+        // Subscribe to hotkey settings changes
+        HotkeySettings.shared.onSettingsChanged = { [weak self] in
+            self?.rebindHotkeys()
+            self?.menuBarController.updateMenu()
+        }
+
+        // Setup hotkeys from settings
+        rebindHotkeys()
+
+        print("SnapGroup is running. Use Ctrl+[1-5] to recall, Ctrl+Shift+[1-5] to tag.")
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
@@ -39,36 +55,88 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
-    private func setupHotkeys() {
-        // Loop for groups 1 to 5
-        for i in 1...5 {
-            let key = keyForNumber(i)
-
-            // RECALL: Command + Number
-            let recallHotKey = HotKey(key: key, modifiers: [.command])
-            recallHotKey.keyDownHandler = { [weak self] in
-                self?.groupManager.recallGroup(i)
-            }
-            hotKeys.append(recallHotKey)
-
-            // TAG: Command + Shift + Number
-            let tagHotKey = HotKey(key: key, modifiers: [.command, .shift])
-            tagHotKey.keyDownHandler = { [weak self] in
-                self?.groupManager.tagWindow(toGroup: i)
-            }
-            hotKeys.append(tagHotKey)
-        }
+    func showPreferences() {
+        preferencesWindowController.showWindow()
     }
 
-    // Helper to map integers to Key enums (from HotKey library)
-    private func keyForNumber(_ num: Int) -> Key {
-        switch num {
-        case 1: return .one
-        case 2: return .two
-        case 3: return .three
-        case 4: return .four
-        case 5: return .five
-        default: return .one
+    func rebindHotkeys() {
+        // Clear existing hotkeys
+        hotKeys.removeAll()
+
+        let settings = HotkeySettings.shared
+        var seenBindings: Set<String> = []
+        var warnings: [String] = []
+
+        func registerBinding(_ binding: HotkeyBinding?, group: Int, action: String, handler: @escaping () -> Void) {
+            guard let binding else { return }
+
+            let context = "\(action) Group \(group)"
+
+            if let conflict = settings.isSystemConflict(binding) {
+                warnings.append("\(context) skipped: \(conflict)")
+                return
+            }
+
+            guard let key = binding.key else {
+                warnings.append("\(context) skipped: Unsupported key code \(binding.keyCode)")
+                return
+            }
+
+            let signature = "\(binding.keyCode)-\(binding.modifiers)"
+            guard seenBindings.insert(signature).inserted else {
+                warnings.append("\(context) skipped: duplicate shortcut")
+                return
+            }
+
+            let modifiers = NSEvent.ModifierFlags(rawValue: UInt(binding.modifiers))
+            let hotKey = HotKey(key: key, modifiers: modifiers)
+            hotKey.keyDownHandler = handler
+            hotKeys.append(hotKey)
+        }
+
+        // Register recall hotkeys
+        for group in 1...5 {
+            registerBinding(settings.recallBindings[group], group: group, action: "Recall") { [weak self] in
+                self?.groupManager.recallGroup(group)
+            }
+        }
+
+        // Register tag hotkeys
+        for group in 1...5 {
+            registerBinding(settings.tagBindings[group], group: group, action: "Tag") { [weak self] in
+                self?.groupManager.tagWindow(toGroup: group)
+            }
+        }
+
+        if !warnings.isEmpty {
+            let signature = warnings.joined(separator: "|")
+            if signature != lastHotkeyWarningSignature {
+                lastHotkeyWarningSignature = signature
+                showAlert(title: "Hotkey Issues", message: warnings.joined(separator: "\n"))
+            }
+            print("Hotkey warnings:\n\(warnings.joined(separator: "\n"))")
+        } else {
+            lastHotkeyWarningSignature = nil
+        }
+
+        print("Hotkeys rebound: \(hotKeys.count) active")
+    }
+
+    private func showAlert(title: String, message: String) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            guard !self.isPresentingAlert else { return }
+            self.isPresentingAlert = true
+
+            let alert = NSAlert()
+            alert.messageText = title
+            alert.informativeText = message
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "OK")
+
+            NSApp.activate(ignoringOtherApps: true)
+            alert.runModal()
+            self.isPresentingAlert = false
         }
     }
 }

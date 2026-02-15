@@ -12,6 +12,8 @@ class GroupManager {
     // A dictionary to store groups: [GroupNumber : [WindowElements]]
     private var groups: [Int: [AXUIElement]] = [:]
     private var hasPromptedForAccessibilityThisSession = false
+    private var cachedPermissionGranted = false
+    private var cachedPermissionTimestamp: Date = .distantPast
 
     // Callback for when groups change (for menu bar updates)
     var onGroupsChanged: (() -> Void)?
@@ -42,12 +44,18 @@ class GroupManager {
     }
 
     private func requestAccessibilityPermissionIfNeeded(for action: String) {
-        if !hasPromptedForAccessibilityThisSession {
-            _ = checkPermissions(prompt: true)
-            hasPromptedForAccessibilityThisSession = true
-        }
+        let alreadyGranted = checkPermissions(prompt: false)
 
-        notifyUser("SnapGroup needs Accessibility permission to \(action). If it is already enabled, remove and re-add SnapGroup in Accessibility settings, then restart.")
+        if alreadyGranted {
+            print("[SnapGroup] Permission appears granted but AX calls are failing")
+            notifyUser("SnapGroup has Accessibility permission but window access is failing. Try removing SnapGroup from Accessibility settings, re-adding it, and restarting the app.")
+        } else {
+            if !hasPromptedForAccessibilityThisSession {
+                _ = checkPermissions(prompt: true)
+                hasPromptedForAccessibilityThisSession = true
+            }
+            notifyUser("SnapGroup needs Accessibility permission to \(action). Please enable it in System Settings > Privacy & Security > Accessibility.")
+        }
     }
 
     // Check if a window reference is still valid
@@ -74,19 +82,60 @@ class GroupManager {
         }
     }
 
-    // Get the focused window's parent window (handles cases where a UI element inside a window is focused)
+    private func isPermissionGranted() -> Bool {
+        let now = Date()
+        if now.timeIntervalSince(cachedPermissionTimestamp) > 5.0 {
+            cachedPermissionGranted = checkPermissions(prompt: false)
+            cachedPermissionTimestamp = now
+        }
+        return cachedPermissionGranted
+    }
+
+    private func invalidatePermissionCache() {
+        cachedPermissionTimestamp = .distantPast
+    }
+
+    // Check if an AX error indicates missing accessibility permission.
+    // Both .apiDisabled and .cannotComplete can occur transiently even when
+    // permission is granted, so always verify against AXIsProcessTrustedWithOptions.
+    private func isAccessibilityError(_ error: AXError) -> Bool {
+        guard error == .apiDisabled || error == .cannotComplete else {
+            return false
+        }
+        invalidatePermissionCache()
+        let granted = isPermissionGranted()
+        print("[SnapGroup] AX error \(error.rawValue) (\(error == .apiDisabled ? "apiDisabled" : "cannotComplete")), permission granted: \(granted)")
+        return !granted
+    }
+
+    // Get the focused window, retrying once on transient AX errors when permission is granted.
     private func getFocusedWindow() -> FocusedWindowLookupResult {
+        let result = getFocusedWindowOnce()
+        if case .failure(let error) = result,
+           (error == .cannotComplete || error == .apiDisabled),
+           isPermissionGranted() {
+            print("[SnapGroup] Retrying after transient AX error \(error.rawValue)")
+            Thread.sleep(forTimeInterval: 0.1)
+            return getFocusedWindowOnce()
+        }
+        return result
+    }
+
+    // Get the focused window's parent window (handles cases where a UI element inside a window is focused)
+    private func getFocusedWindowOnce() -> FocusedWindowLookupResult {
         let systemWide = AXUIElementCreateSystemWide()
 
         var focusedApp: AnyObject?
         let appResult = AXUIElementCopyAttributeValue(systemWide, kAXFocusedApplicationAttribute as CFString, &focusedApp)
         guard appResult == .success else {
-            if appResult == .apiDisabled {
+            if isAccessibilityError(appResult) {
+                print("[SnapGroup] Focused app lookup denied (AX error: \(appResult.rawValue))")
                 return .accessibilityDenied
             }
             if appResult == .noValue {
                 return .noFocusedWindow
             }
+            print("[SnapGroup] Focused app lookup failed (AX error: \(appResult.rawValue))")
             return .failure(appResult)
         }
         guard let focusedApp else {
@@ -97,12 +146,14 @@ class GroupManager {
         var focusedWindow: AnyObject?
         let windowResult = AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &focusedWindow)
         guard windowResult == .success else {
-            if windowResult == .apiDisabled {
+            if isAccessibilityError(windowResult) {
+                print("[SnapGroup] Focused window lookup denied (AX error: \(windowResult.rawValue))")
                 return .accessibilityDenied
             }
             if windowResult == .noValue {
                 return .noFocusedWindow
             }
+            print("[SnapGroup] Focused window lookup failed (AX error: \(windowResult.rawValue))")
             return .failure(windowResult)
         }
         guard let focusedWindow else {
@@ -230,7 +281,7 @@ class GroupManager {
         var pid: pid_t = 0
         let pidResult = AXUIElementGetPid(window, &pid)
         guard pidResult == .success, pid != 0 else {
-            if pidResult == .apiDisabled {
+            if isAccessibilityError(pidResult) {
                 return .accessibilityDenied
             }
             print("Failed to resolve owning app for window")
@@ -245,7 +296,7 @@ class GroupManager {
 
         // Tell accessibility to "Raise" the specific window
         let result = AXUIElementPerformAction(window, kAXRaiseAction as CFString)
-        if result == .apiDisabled {
+        if isAccessibilityError(result) {
             return .accessibilityDenied
         }
 

@@ -20,7 +20,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         // Check permission status on launch, but request on-demand from real AX failures.
-        if !groupManager.checkPermissions(prompt: true) {
+        if !groupManager.checkPermissions(prompt: false) {
             print("Accessibility permission not confirmed at launch. SnapGroup will request it when needed.")
         }
 

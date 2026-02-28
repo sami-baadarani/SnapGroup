@@ -20,6 +20,12 @@ class GroupManager {
     private var cachedPermissionGranted = false
     private var cachedPermissionTimestamp: Date = .distantPast
 
+    // Proactive AXEnhancedUserInterface signaling for Chromium-based browsers.
+    // Tracks PIDs we've already signaled to avoid resetting Chromium's 2-second debounce.
+    private var enhancedUIPids: Set<pid_t> = []
+    private var workspaceObserver: NSObjectProtocol?
+    private var terminationObserver: NSObjectProtocol?
+
     // Callback for when groups change (for menu bar updates)
     var onGroupsChanged: (() -> Void)?
     var onUserMessage: ((String) -> Void)?
@@ -114,6 +120,53 @@ class GroupManager {
         cachedPermissionTimestamp = .distantPast
     }
 
+    // Signal Chromium-based browsers (Brave, Chrome, Edge) to enable their
+    // Accessibility API. Non-Chromium apps simply ignore this attribute.
+    private func enableEnhancedUI(for app: AXUIElement) {
+        AXUIElementSetAttributeValue(app, "AXEnhancedUserInterface" as CFString, true as CFTypeRef)
+    }
+
+    /// Proactively set AXEnhancedUserInterface when apps come to foreground,
+    /// so Chromium's 2-second debounce has elapsed by the time the user presses a hotkey.
+    func startObservingAppActivations() {
+        let ws = NSWorkspace.shared
+
+        // Signal the current frontmost app immediately
+        if let frontmost = ws.frontmostApplication {
+            let pid = frontmost.processIdentifier
+            if pid > 0, enhancedUIPids.insert(pid).inserted {
+                let app = AXUIElementCreateApplication(pid)
+                enableEnhancedUI(for: app)
+            }
+        }
+
+        workspaceObserver = ws.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self,
+                  let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+            let pid = app.processIdentifier
+            guard pid > 0 else { return }
+            // Only signal each PID once to avoid resetting the debounce
+            if self.enhancedUIPids.insert(pid).inserted {
+                let axApp = AXUIElementCreateApplication(pid)
+                self.enableEnhancedUI(for: axApp)
+            }
+        }
+
+        terminationObserver = ws.notificationCenter.addObserver(
+            forName: NSWorkspace.didTerminateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self,
+                  let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+            self.enhancedUIPids.remove(app.processIdentifier)
+        }
+    }
+
     // Check if an AX error indicates missing accessibility permission.
     // Both .apiDisabled and .cannotComplete can occur transiently even when
     // permission is granted, so always verify against AXIsProcessTrustedWithOptions.
@@ -156,54 +209,91 @@ class GroupManager {
         return .noFocusedWindow
     }
 
-    // Get the focused window's parent window (handles cases where a UI element inside a window is focused)
+    // Get the focused window with fallbacks for Chromium-based browsers.
+    // Fallback A: If kAXFocusedApplicationAttribute fails, use NSWorkspace.frontmostApplication.
+    // Fallback B: If kAXFocusedWindowAttribute returns nil, query kAXWindowsAttribute and pick the main window.
     private func getFocusedWindowOnce() -> FocusedWindowLookupResult {
         let systemWide = AXUIElementCreateSystemWide()
+        let myPid = ProcessInfo.processInfo.processIdentifier
 
-        var focusedApp: AnyObject?
-        let appResult = AXUIElementCopyAttributeValue(systemWide, kAXFocusedApplicationAttribute as CFString, &focusedApp)
-        guard appResult == .success else {
+        // --- Resolve the focused app (with frontmostApplication fallback) ---
+        var appPid: pid_t = 0
+        var app: AXUIElement
+
+        var focusedAppValue: AnyObject?
+        let appResult = AXUIElementCopyAttributeValue(systemWide, kAXFocusedApplicationAttribute as CFString, &focusedAppValue)
+
+        if appResult == .success, let focusedAppValue {
+            app = focusedAppValue as! AXUIElement
+            AXUIElementGetPid(app, &appPid)
+        } else {
+            // Fallback A: AX system-wide query failed — try NSWorkspace
             if isAccessibilityError(appResult) {
-                print("[SnapGroup] Focused app lookup denied (AX error: \(appResult.rawValue))")
                 return .accessibilityDenied
             }
-            if appResult == .noValue {
+            guard let frontmost = NSWorkspace.shared.frontmostApplication else {
                 return .noFocusedWindow
             }
-            print("[SnapGroup] Focused app lookup failed (AX error: \(appResult.rawValue))")
-            return .failure(appResult)
+            appPid = frontmost.processIdentifier
+            guard appPid > 0 else { return .noFocusedWindow }
+            app = AXUIElementCreateApplication(appPid)
         }
-        guard let focusedApp else {
-            return .noFocusedWindow
-        }
-        let app = focusedApp as! AXUIElement
 
         // Skip SnapGroup itself — let retry logic wait for focus to return to the user's window
-        var appPid: pid_t = 0
-        AXUIElementGetPid(app, &appPid)
-        if appPid == ProcessInfo.processInfo.processIdentifier {
+        if appPid == myPid {
             return .noFocusedWindow
         }
 
+        // Debounce-safe: only signal if we haven't already
+        if enhancedUIPids.insert(appPid).inserted {
+            enableEnhancedUI(for: app)
+        }
+
+        // --- Resolve the focused window (with kAXWindowsAttribute fallback) ---
         var focusedWindow: AnyObject?
         let windowResult = AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &focusedWindow)
-        guard windowResult == .success else {
+
+        if windowResult == .success, let focusedWindow {
+            return .success(focusedWindow as! AXUIElement)
+        }
+
+        // Check for hard errors before trying fallback
+        if windowResult != .success && windowResult != .noValue {
             if isAccessibilityError(windowResult) {
-                print("[SnapGroup] Focused window lookup denied (AX error: \(windowResult.rawValue))")
                 return .accessibilityDenied
             }
-            if windowResult == .noValue {
+        }
+
+        // Fallback B: query all windows and pick the main one
+        var windowList: AnyObject?
+        let listResult = AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &windowList)
+        guard listResult == .success, let windows = windowList as? [AXUIElement], !windows.isEmpty else {
+            if windowResult == .noValue || listResult == .noValue {
                 return .noFocusedWindow
             }
-            print("[SnapGroup] Focused window lookup failed (AX error: \(windowResult.rawValue))")
             return .failure(windowResult)
         }
-        guard let focusedWindow else {
-            return .noFocusedWindow
-        }
-        let window = focusedWindow as! AXUIElement
 
-        return .success(window)
+        // Prefer the window with kAXMainAttribute = true
+        for window in windows {
+            var mainValue: AnyObject?
+            if AXUIElementCopyAttributeValue(window, kAXMainAttribute as CFString, &mainValue) == .success,
+               CFBooleanGetValue(mainValue as! CFBoolean) {
+                return .success(window)
+            }
+        }
+
+        // Fall back to the first window with a proper role
+        for window in windows {
+            var roleValue: AnyObject?
+            if AXUIElementCopyAttributeValue(window, kAXRoleAttribute as CFString, &roleValue) == .success,
+               (roleValue as? String) == (kAXWindowRole as String) {
+                return .success(window)
+            }
+        }
+
+        // Last resort: first window in the list
+        return .success(windows[0])
     }
 
     // Tag the Currently Focused Window
@@ -333,6 +423,15 @@ class GroupManager {
             print("Failed to resolve owning app for window")
             return .failure
         }
+
+        // Debounce-safe: only signal if we haven't already
+        let appElement = AXUIElementCreateApplication(pid)
+        if enhancedUIPids.insert(pid).inserted {
+            enableEnhancedUI(for: appElement)
+        }
+
+        // Tell the app which window should be main before activating (Hammerspoon pattern)
+        AXUIElementSetAttributeValue(window, kAXMainAttribute as CFString, true as CFTypeRef)
 
         // Activate that App
         var didActivate = true

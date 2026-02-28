@@ -24,6 +24,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             print("Accessibility permission not confirmed at launch. SnapGroup will request it when needed.")
         }
 
+        // Proactively signal AXEnhancedUserInterface to apps as they activate,
+        // so Chromium's 2-second debounce has elapsed by the time the user presses a hotkey.
+        groupManager.startObservingAppActivations()
+
         // Setup preferences window controller
         preferencesWindowController = PreferencesWindowController()
 

@@ -9,8 +9,13 @@ import Cocoa
 import ApplicationServices
 
 class GroupManager {
-    // A dictionary to store groups: [GroupNumber : [WindowElements]]
-    private var groups: [Int: [AXUIElement]] = [:]
+    private struct TrackedWindow {
+        let element: AXUIElement
+        let title: String
+        let pid: pid_t
+    }
+
+    private var groups: [Int: [TrackedWindow]] = [:]
     private var hasPromptedForAccessibilityThisSession = false
     private var cachedPermissionGranted = false
     private var cachedPermissionTimestamp: Date = .distantPast
@@ -60,19 +65,33 @@ class GroupManager {
 
     // Check if a window reference is still valid
     private func isWindowValid(_ window: AXUIElement) -> Bool {
-        var roleValue: AnyObject?
-        let result = AXUIElementCopyAttributeValue(window, kAXRoleAttribute as CFString, &roleValue)
-        guard result == .success, let role = roleValue as? String else {
+        // Fast check: is the owning process still alive?
+        var pid: pid_t = 0
+        guard AXUIElementGetPid(window, &pid) == .success, pid > 0 else {
             return false
         }
-        return role == (kAXWindowRole as String)
+        guard NSRunningApplication(processIdentifier: pid) != nil else {
+            return false
+        }
+
+        var roleValue: AnyObject?
+        let result = AXUIElementCopyAttributeValue(window, kAXRoleAttribute as CFString, &roleValue)
+
+        if result == .success {
+            return (roleValue as? String) == (kAXWindowRole as String)
+        }
+        // Process alive but AX transiently unavailable — keep the window
+        if result == .cannotComplete || result == .apiDisabled {
+            return true
+        }
+        return false
     }
 
     // Clean up invalid windows from a group
     private func cleanupInvalidWindows(in group: Int, notifyChange: Bool = true) {
         guard var windows = groups[group] else { return }
         let originalCount = windows.count
-        windows = windows.filter { isWindowValid($0) }
+        windows = windows.filter { isWindowValid($0.element) }
         if windows.count != originalCount {
             groups[group] = windows
             print("Cleaned up \(originalCount - windows.count) invalid window(s) from Group \(group)")
@@ -108,17 +127,33 @@ class GroupManager {
         return !granted
     }
 
-    // Get the focused window, retrying once on transient AX errors when permission is granted.
+    // Get the focused window, retrying on transient AX errors or missing focus during transitions.
     private func getFocusedWindow() -> FocusedWindowLookupResult {
-        let result = getFocusedWindowOnce()
-        if case .failure(let error) = result,
-           (error == .cannotComplete || error == .apiDisabled),
-           isPermissionGranted() {
-            print("[SnapGroup] Retrying after transient AX error \(error.rawValue)")
-            Thread.sleep(forTimeInterval: 0.1)
-            return getFocusedWindowOnce()
+        for attempt in 0..<3 {
+            let result = getFocusedWindowOnce()
+            switch result {
+            case .success:
+                return result
+            case .accessibilityDenied:
+                return result
+            case .noFocusedWindow:
+                // Could be transient during focus transitions — retry
+                if attempt < 2 {
+                    Thread.sleep(forTimeInterval: 0.05)
+                    continue
+                }
+                return result
+            case .failure(let error):
+                if (error == .cannotComplete || error == .apiDisabled),
+                   isPermissionGranted(), attempt < 2 {
+                    print("[SnapGroup] Retrying after transient AX error \(error.rawValue)")
+                    Thread.sleep(forTimeInterval: 0.1)
+                    continue
+                }
+                return result
+            }
         }
-        return result
+        return .noFocusedWindow
     }
 
     // Get the focused window's parent window (handles cases where a UI element inside a window is focused)
@@ -142,6 +177,13 @@ class GroupManager {
             return .noFocusedWindow
         }
         let app = focusedApp as! AXUIElement
+
+        // Skip SnapGroup itself — let retry logic wait for focus to return to the user's window
+        var appPid: pid_t = 0
+        AXUIElementGetPid(app, &appPid)
+        if appPid == ProcessInfo.processInfo.processIdentifier {
+            return .noFocusedWindow
+        }
 
         var focusedWindow: AnyObject?
         let windowResult = AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &focusedWindow)
@@ -183,23 +225,27 @@ class GroupManager {
             return
         }
 
-        // Get window title for logging
+        // Capture window metadata now so menu updates never need live AX queries
         var titleValue: AnyObject?
         AXUIElementCopyAttributeValue(window, kAXTitleAttribute as CFString, &titleValue)
-        let title = titleValue as? String ?? "Unknown"
+        let title = (titleValue as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        var pid: pid_t = 0
+        AXUIElementGetPid(window, &pid)
 
         // Initialize array if nil
         if groups[group] == nil { groups[group] = [] }
 
         // Check for duplicates
-        let exists = groups[group]?.contains(where: { CFEqual($0, window) }) ?? false
+        let exists = groups[group]?.contains(where: { CFEqual($0.element, window) }) ?? false
 
         if !exists {
-            groups[group]?.append(window)
-            print("Tagged '\(title)' to Group \(group)")
+            let tracked = TrackedWindow(element: window, title: title, pid: pid)
+            groups[group]?.append(tracked)
+            print("Tagged '\(title.isEmpty ? "(untitled)" : title)' to Group \(group)")
             onGroupsChanged?()
         } else {
-            print("Window '\(title)' already in Group \(group)")
+            print("Window '\(title.isEmpty ? "(untitled)" : title)' already in Group \(group)")
         }
     }
 
@@ -228,7 +274,7 @@ class GroupManager {
         }
 
         let originalCount = windows.count
-        windows = windows.filter { !CFEqual($0, window) }
+        windows = windows.filter { !CFEqual($0.element, window) }
 
         if windows.count < originalCount {
             groups[group] = windows
@@ -254,8 +300,8 @@ class GroupManager {
         // Iterate through windows so the first added ends up on top
         var deniedCount = 0
         var failedCount = 0
-        for window in windows {
-            switch bringWindowToFront(window) {
+        for tracked in windows {
+            switch bringWindowToFront(tracked.element) {
             case .success:
                 break
             case .accessibilityDenied:
@@ -328,28 +374,25 @@ class GroupManager {
         onGroupsChanged?()
     }
 
-    // Get group info for menu bar display
+    // Get group info for menu bar display (fast PID-only prune, no AX queries)
     func getGroupInfo() -> [Int: Int] {
         var info: [Int: Int] = [:]
         for i in 1...5 {
-            // Clean up invalid windows before reporting, but don't publish callbacks from a read path.
-            cleanupInvalidWindows(in: i, notifyChange: false)
+            if var windows = groups[i] {
+                let before = windows.count
+                windows = windows.filter { NSRunningApplication(processIdentifier: $0.pid) != nil }
+                if windows.count != before {
+                    groups[i] = windows
+                }
+            }
             info[i] = groups[i]?.count ?? 0
         }
         return info
     }
 
-    // Get window titles in a group (for menu display)
+    // Get window titles in a group (uses cached titles, no live AX queries)
     func getWindowTitles(forGroup group: Int) -> [String] {
         guard let windows = groups[group] else { return [] }
-
-        return windows.map { window -> String in
-            var titleValue: AnyObject?
-            guard AXUIElementCopyAttributeValue(window, kAXTitleAttribute as CFString, &titleValue) == .success else {
-                return "(untitled)"
-            }
-            let title = (titleValue as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            return title.isEmpty ? "(untitled)" : title
-        }
+        return windows.map { $0.title.isEmpty ? "(untitled)" : $0.title }
     }
 }

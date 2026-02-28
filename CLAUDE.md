@@ -10,6 +10,7 @@ Open `SnapGroup.xcodeproj` in Xcode and build with Cmd+B or run with Cmd+R.
 
 ## Project Configuration
 
+- **macOS Deployment Target:** 26.1
 - **App Sandbox:** Disabled (required for Accessibility API)
 - **LSUIElement:** YES (hides app from Dock and Cmd+Tab)
 - **Bundle ID:** dev.samib.SnapGroup
@@ -23,9 +24,14 @@ SnapGroup is a macOS menu bar app for window grouping. Users tag windows to grou
 **AppDelegate.swift** - Entry point. Initializes components, subscribes to settings changes, and manages HotKey instances via `rebindHotkeys()`.
 
 **GroupManager.swift** - Window management engine using macOS Accessibility API (AXUIElement). Key operations:
+- `TrackedWindow` struct caches `element`, `title`, and `pid` at tag time — menu bar and `getWindowTitles()` never make live AX queries
 - `tagWindow(toGroup:)` - Adds focused window to a group
+- `untagWindow(fromGroup:)` - Removes the focused window from a group
 - `recallGroup(_)` - Brings all windows in a group to front via `bringWindowToFront()`
 - Auto-cleanup of closed windows via `isWindowValid()` checks
+- `getFocusedWindow()` retries up to 3 times with short delays to handle transient AX errors and focus transitions
+- Self-focus skip: ignores SnapGroup's own PID during focused-window lookup so hotkeys work reliably
+- `onUserMessage` callback for user-facing notifications (paired with `NSSound.beep()`)
 
 **HotkeySettings.swift** - Singleton storing hotkey bindings in UserDefaults. Default hotkeys: Ctrl+[1-5] for recall, Ctrl+Shift+[1-5] for tag. Notifies subscribers via `onSettingsChanged` callback.
 
@@ -50,4 +56,10 @@ SnapGroup is a macOS menu bar app for window grouping. Users tag windows to grou
 
 **Window Activation:** Uses `NSRunningApplication.activate()` + `AXUIElementPerformAction(kAXRaiseAction)` to bring specific windows forward without affecting other windows of the same app.
 
-**Accessibility Permission:** Required on first launch. App prompts via `AXIsProcessTrustedWithOptions`.
+**Accessibility Permission:** Required for all window operations.
+- On launch, checks with `prompt: false` (no dialog on every rebuild)
+- Only prompts the system dialog once per session, triggered when an actual AX error occurs during use
+- 5-second permission cache (`isPermissionGranted()`) reduces repeated `AXIsProcessTrustedWithOptions` system calls
+- `isAccessibilityError()` distinguishes transient AX errors (`.cannotComplete`, `.apiDisabled` while permission is granted) from real permission denials
+
+**Window Validation:** `isWindowValid()` checks process alive → AX role check → keeps window if process is alive but AX is transiently unavailable (`.cannotComplete`, `.apiDisabled`).

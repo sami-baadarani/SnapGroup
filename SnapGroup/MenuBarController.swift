@@ -28,7 +28,8 @@ class MenuBarController {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "rectangle.3.group", accessibilityDescription: "SnapGroup")
+            button.image = NSImage(named: "MenuBarIcon")
+            button.image?.isTemplate = true
         }
 
         updateMenu()

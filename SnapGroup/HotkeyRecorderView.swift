@@ -204,6 +204,12 @@ class HotkeyRecorderView: NSView {
         needsDisplay = true
     }
 
+    // Update layer colors when system appearance changes (light/dark mode)
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateAppearance()
+    }
+
     // Cancel recording if view loses focus
     override func resignFirstResponder() -> Bool {
         if isRecording {

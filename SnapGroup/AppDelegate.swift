@@ -21,7 +21,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         // Check permission status on launch, but request on-demand from real AX failures.
         if !groupManager.checkPermissions(prompt: false) {
-            print("Accessibility permission not confirmed at launch. SnapGroup will request it when needed.")
+            debugLog("Accessibility permission not confirmed at launch. SnapGroup will request it when needed.")
         }
 
         // Proactively signal AXEnhancedUserInterface to apps as they activate,
@@ -47,7 +47,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Setup hotkeys from settings
         rebindHotkeys()
 
-        print("SnapGroup is running. Use Ctrl+[1-5] to recall, Ctrl+Shift+[1-5] to tag.")
+        debugLog("SnapGroup is running. Use Ctrl+[1-5] to recall, Ctrl+Shift+[1-5] to tag.")
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
@@ -118,12 +118,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 lastHotkeyWarningSignature = signature
                 showAlert(title: "Hotkey Issues", message: warnings.joined(separator: "\n"))
             }
-            print("Hotkey warnings:\n\(warnings.joined(separator: "\n"))")
+            debugLog("Hotkey warnings:\n\(warnings.joined(separator: "\n"))")
         } else {
             lastHotkeyWarningSignature = nil
         }
 
-        print("Hotkeys rebound: \(hotKeys.count) active")
+        debugLog("Hotkeys rebound: \(hotKeys.count) active")
     }
 
     private func showAlert(title: String, message: String) {
@@ -138,7 +138,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             alert.alertStyle = .warning
             alert.addButton(withTitle: "OK")
 
-            NSApp.activate(ignoringOtherApps: true)
+            NSApp.activate()
             alert.runModal()
             self.isPresentingAlert = false
         }

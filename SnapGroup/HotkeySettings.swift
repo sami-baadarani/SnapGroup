@@ -188,7 +188,7 @@ class HotkeySettings {
             UserDefaults.standard.set(disabledTagData, forKey: disabledTagKey)
         }
 
-        print("Hotkey settings saved")
+        debugLog("Hotkey settings saved")
     }
 
     func load() {
@@ -230,7 +230,7 @@ class HotkeySettings {
             }
         }
 
-        print("Hotkey settings loaded")
+        debugLog("Hotkey settings loaded")
     }
 
     func setRecallBinding(_ binding: HotkeyBinding?, for group: Int) {

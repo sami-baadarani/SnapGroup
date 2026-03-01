@@ -18,7 +18,7 @@ class PreferencesWindowController: NSWindowController {
             backing: .buffered,
             defer: false
         )
-        window.title = "SnapGroup Preferences"
+        window.title = "SnapGroup Settings"
         window.center()
         window.isReleasedWhenClosed = false
 
@@ -208,6 +208,6 @@ class PreferencesWindowController: NSWindowController {
     func showWindow() {
         loadCurrentBindings()
         window?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
     }
 }

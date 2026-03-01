@@ -58,7 +58,7 @@ class GroupManager {
         let alreadyGranted = checkPermissions(prompt: false)
 
         if alreadyGranted {
-            print("[SnapGroup] Permission appears granted but AX calls are failing")
+            debugLog("[SnapGroup] Permission appears granted but AX calls are failing")
             notifyUser("SnapGroup has Accessibility permission but window access is failing. Try removing SnapGroup from Accessibility settings, re-adding it, and restarting the app.")
         } else {
             if !hasPromptedForAccessibilityThisSession {
@@ -100,7 +100,7 @@ class GroupManager {
         windows = windows.filter { isWindowValid($0.element) }
         if windows.count != originalCount {
             groups[group] = windows
-            print("Cleaned up \(originalCount - windows.count) invalid window(s) from Group \(group)")
+            debugLog("Cleaned up \(originalCount - windows.count) invalid window(s) from Group \(group)")
             if notifyChange {
                 onGroupsChanged?()
             }
@@ -176,7 +176,7 @@ class GroupManager {
         }
         invalidatePermissionCache()
         let granted = isPermissionGranted()
-        print("[SnapGroup] AX error \(error.rawValue) (\(error == .apiDisabled ? "apiDisabled" : "cannotComplete")), permission granted: \(granted)")
+        debugLog("[SnapGroup] AX error \(error.rawValue) (\(error == .apiDisabled ? "apiDisabled" : "cannotComplete")), permission granted: \(granted)")
         return !granted
     }
 
@@ -199,7 +199,7 @@ class GroupManager {
             case .failure(let error):
                 if (error == .cannotComplete || error == .apiDisabled),
                    isPermissionGranted(), attempt < 2 {
-                    print("[SnapGroup] Retrying after transient AX error \(error.rawValue)")
+                    debugLog("[SnapGroup] Retrying after transient AX error \(error.rawValue)")
                     Thread.sleep(forTimeInterval: 0.1)
                     continue
                 }
@@ -278,7 +278,7 @@ class GroupManager {
         for window in windows {
             var mainValue: AnyObject?
             if AXUIElementCopyAttributeValue(window, kAXMainAttribute as CFString, &mainValue) == .success,
-               CFBooleanGetValue(mainValue as! CFBoolean) {
+               let boolValue = mainValue as? NSNumber, boolValue.boolValue {
                 return .success(window)
             }
         }
@@ -303,14 +303,14 @@ class GroupManager {
         case .success(let focusedWindow):
             window = focusedWindow
         case .noFocusedWindow:
-            print("No window focused")
+            debugLog("No window focused")
             NSSound.beep()
             return
         case .accessibilityDenied:
             requestAccessibilityPermissionIfNeeded(for: "tag windows")
             return
         case .failure(let error):
-            print("Failed to get focused window (AX error: \(error.rawValue))")
+            debugLog("Failed to get focused window (AX error: \(error.rawValue))")
             NSSound.beep()
             return
         }
@@ -332,10 +332,10 @@ class GroupManager {
         if !exists {
             let tracked = TrackedWindow(element: window, title: title, pid: pid)
             groups[group]?.append(tracked)
-            print("Tagged '\(title.isEmpty ? "(untitled)" : title)' to Group \(group)")
+            debugLog("Tagged '\(title.isEmpty ? "(untitled)" : title)' to Group \(group)")
             onGroupsChanged?()
         } else {
-            print("Window '\(title.isEmpty ? "(untitled)" : title)' already in Group \(group)")
+            debugLog("Window '\(title.isEmpty ? "(untitled)" : title)' already in Group \(group)")
         }
     }
 
@@ -346,20 +346,20 @@ class GroupManager {
         case .success(let focusedWindow):
             window = focusedWindow
         case .noFocusedWindow:
-            print("No window focused")
+            debugLog("No window focused")
             NSSound.beep()
             return
         case .accessibilityDenied:
             requestAccessibilityPermissionIfNeeded(for: "modify groups")
             return
         case .failure(let error):
-            print("Failed to get focused window (AX error: \(error.rawValue))")
+            debugLog("Failed to get focused window (AX error: \(error.rawValue))")
             NSSound.beep()
             return
         }
 
         guard var windows = groups[group] else {
-            print("Group \(group) is empty")
+            debugLog("Group \(group) is empty")
             return
         }
 
@@ -368,10 +368,10 @@ class GroupManager {
 
         if windows.count < originalCount {
             groups[group] = windows
-            print("Removed window from Group \(group)")
+            debugLog("Removed window from Group \(group)")
             onGroupsChanged?()
         } else {
-            print("Window not found in Group \(group)")
+            debugLog("Window not found in Group \(group)")
         }
     }
 
@@ -381,11 +381,11 @@ class GroupManager {
         cleanupInvalidWindows(in: group)
 
         guard let windows = groups[group], !windows.isEmpty else {
-            print("Group \(group) is empty")
+            debugLog("Group \(group) is empty")
             return
         }
 
-        print("Recalling Group \(group) with \(windows.count) window(s)")
+        debugLog("Recalling Group \(group) with \(windows.count) window(s)")
 
         // Iterate through windows so the first added ends up on top
         var deniedCount = 0
@@ -420,7 +420,7 @@ class GroupManager {
             if isAccessibilityError(pidResult) {
                 return .accessibilityDenied
             }
-            print("Failed to resolve owning app for window")
+            debugLog("Failed to resolve owning app for window")
             return .failure
         }
 
@@ -436,7 +436,7 @@ class GroupManager {
         // Activate that App
         var didActivate = true
         if let app = NSRunningApplication(processIdentifier: pid) {
-            didActivate = app.activate(options: .activateIgnoringOtherApps)
+            didActivate = app.activate()
         }
 
         // Tell accessibility to "Raise" the specific window
@@ -446,12 +446,12 @@ class GroupManager {
         }
 
         if result != .success {
-            print("Failed to raise window (AX error: \(result.rawValue))")
+            debugLog("Failed to raise window (AX error: \(result.rawValue))")
             return .failure
         }
 
         if !didActivate {
-            print("Failed to activate app for window")
+            debugLog("Failed to activate app for window")
             return .failure
         }
 
@@ -462,14 +462,14 @@ class GroupManager {
     func clearGroup(_ group: Int) {
         let count = groups[group]?.count ?? 0
         groups[group] = []
-        print("Cleared Group \(group) (\(count) window(s))")
+        debugLog("Cleared Group \(group) (\(count) window(s))")
         onGroupsChanged?()
     }
 
     // Clear All Groups
     func clearAllGroups() {
         groups.removeAll()
-        print("Cleared all groups")
+        debugLog("Cleared all groups")
         onGroupsChanged?()
     }
 

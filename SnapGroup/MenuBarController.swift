@@ -122,7 +122,7 @@ class MenuBarController {
         menu.addItem(NSMenuItem.separator())
 
         // Preferences
-        let prefsItem = NSMenuItem(title: "Preferences...", action: #selector(showPreferences), keyEquivalent: ",")
+        let prefsItem = NSMenuItem(title: "Settings...", action: #selector(showPreferences), keyEquivalent: ",")
         prefsItem.target = self
         menu.addItem(prefsItem)
 
@@ -142,7 +142,17 @@ class MenuBarController {
     }
 
     @objc private func clearAllGroups() {
-        groupManager.clearAllGroups()
+        let alert = NSAlert()
+        alert.messageText = "Clear All Groups?"
+        alert.informativeText = "This will remove all windows from all groups. This cannot be undone."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Clear All")
+        alert.addButton(withTitle: "Cancel")
+
+        NSApp.activate()
+        if alert.runModal() == .alertFirstButtonReturn {
+            groupManager.clearAllGroups()
+        }
     }
 
     @objc private func showPreferences() {

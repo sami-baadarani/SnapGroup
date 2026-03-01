@@ -8,7 +8,6 @@
 import Cocoa
 import HotKey
 
-@main
 class AppDelegate: NSObject, NSApplicationDelegate {
 
     let groupManager = GroupManager()

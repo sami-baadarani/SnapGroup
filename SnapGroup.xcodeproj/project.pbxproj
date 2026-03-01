@@ -257,6 +257,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = SnapGroup/SnapGroup.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -289,6 +290,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = SnapGroup/SnapGroup.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -340,14 +342,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-			26F0914C2EFD13D6001BE9CF /* XCRemoteSwiftPackageReference "HotKey" */ = {
-				isa = XCRemoteSwiftPackageReference;
-				repositoryURL = "https://github.com/soffes/HotKey";
-				requirement = {
-					kind = revision;
-					revision = a3cf605d7a96f6ff50e04fcb6dea6e2613cfcbe4;
-				};
+		26F0914C2EFD13D6001BE9CF /* XCRemoteSwiftPackageReference "HotKey" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/soffes/HotKey";
+			requirement = {
+				kind = revision;
+				revision = a3cf605d7a96f6ff50e04fcb6dea6e2613cfcbe4;
 			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */

@@ -77,15 +77,18 @@ xcodebuild -exportArchive \
 
 # 4. Create DMG (see Section 3)
 
-# 5. Notarize
+# 5. Sign the DMG
+codesign --sign "Developer ID Application: Sami Baadarani (Y4M378P55D)" build/SnapGroup.dmg
+
+# 6. Notarize
 xcrun notarytool submit build/SnapGroup.dmg \
   --keychain-profile "SnapGroup-Notary" \
   --wait
 
-# 6. Staple (embeds the notarization ticket for offline verification)
+# 7. Staple (embeds the notarization ticket for offline verification)
 xcrun stapler staple build/SnapGroup.dmg
 
-# 7. Verify
+# 8. Verify
 spctl --assess --type open --context context:primary-signature build/SnapGroup.dmg
 xcrun stapler validate build/SnapGroup.dmg
 ```
@@ -162,7 +165,7 @@ Use [create-dmg](https://github.com/create-dmg/create-dmg) (Homebrew: `brew inst
 ```bash
 create-dmg \
   --volname "SnapGroup" \
-  --volicon "assets/dmg/AppIcon.icns" \
+  --volicon "build/export/SnapGroup.app/Contents/Resources/AppIcon.icns" \
   --background "assets/dmg/background.png" \
   --window-pos 200 120 \
   --window-size 660 400 \
@@ -175,6 +178,17 @@ create-dmg \
   "build/export/SnapGroup.app"
 ```
 
+Set the app icon on the DMG file itself (visible in Finder before mounting):
+
+```bash
+osascript -e '
+use framework "AppKit"
+set iconPath to POSIX path of "'"$(pwd)"'/build/export/SnapGroup.app/Contents/Resources/AppIcon.icns"
+set dmgPath to POSIX path of "'"$(pwd)"'/build/SnapGroup.dmg"
+set iconImage to current application'\''s NSImage'\''s alloc()'\''s initWithContentsOfFile:iconPath
+current application'\''s NSWorkspace'\''s sharedWorkspace()'\''s setIcon:iconImage forFile:dmgPath options:0'
+```
+
 ### 3.2 DMG Background Image
 
 - **Size:** 660×400 @1x (1320×800 @2x for Retina)
@@ -185,9 +199,7 @@ create-dmg \
 ### 3.3 Sign the DMG
 
 ```bash
-codesign --sign "Developer ID Application: Your Name (TEAM_ID)" \
-  --timestamp \
-  build/SnapGroup.dmg
+codesign --sign "Developer ID Application: Sami Baadarani (Y4M378P55D)" build/SnapGroup.dmg
 ```
 
 Then notarize and staple (see 1.4, steps 5-7).
@@ -663,6 +675,7 @@ jobs:
           brew install create-dmg
           create-dmg \
             --volname "SnapGroup" \
+            --volicon "build/export/SnapGroup.app/Contents/Resources/AppIcon.icns" \
             --window-size 660 400 \
             --icon "SnapGroup.app" 180 200 \
             --app-drop-link 480 200 \
@@ -670,6 +683,10 @@ jobs:
             --no-internet-enable \
             "build/SnapGroup.dmg" \
             "build/export/SnapGroup.app"
+
+      - name: Sign DMG
+        run: |
+          codesign --sign "Developer ID Application" build/SnapGroup.dmg
 
       - name: Notarize
         env:
@@ -726,6 +743,7 @@ xcodebuild -exportArchive \
 
 create-dmg \
   --volname "SnapGroup" \
+  --volicon "${BUILD_DIR}/export/SnapGroup.app/Contents/Resources/AppIcon.icns" \
   --window-size 660 400 \
   --icon "SnapGroup.app" 180 200 \
   --app-drop-link 480 200 \
@@ -733,6 +751,17 @@ create-dmg \
   --no-internet-enable \
   "${BUILD_DIR}/SnapGroup-${VERSION}.dmg" \
   "${BUILD_DIR}/export/SnapGroup.app"
+
+# Set DMG file icon in Finder
+osascript -e '
+use framework "AppKit"
+set iconPath to POSIX path of "'"$(pwd)/${BUILD_DIR}"'/export/SnapGroup.app/Contents/Resources/AppIcon.icns"
+set dmgPath to POSIX path of "'"$(pwd)/${BUILD_DIR}"'/SnapGroup-'"${VERSION}"'.dmg"
+set iconImage to current application'\''s NSImage'\''s alloc()'\''s initWithContentsOfFile:iconPath
+current application'\''s NSWorkspace'\''s sharedWorkspace()'\''s setIcon:iconImage forFile:dmgPath options:0'
+
+echo "==> Signing DMG..."
+codesign --sign "Developer ID Application: Sami Baadarani (Y4M378P55D)" "${BUILD_DIR}/SnapGroup-${VERSION}.dmg"
 
 echo "==> Notarizing..."
 xcrun notarytool submit "${BUILD_DIR}/SnapGroup-${VERSION}.dmg" \

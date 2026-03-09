@@ -125,11 +125,17 @@ set iconImage to current application'\''s NSImage'\''s alloc()'\''s initWithCont
 current application'\''s NSWorkspace'\''s sharedWorkspace()'\''s setIcon:iconImage forFile:dmgPath options:0'
 ```
 
+Sign the DMG (`create-dmg` doesn't code-sign it):
+
+```bash
+codesign --sign "Developer ID Application: Sami Baadarani (Y4M378P55D)" build/SnapGroup.dmg
+```
+
 Then notarize and staple the DMG:
 
 ```bash
-xcrun notarytool submit SnapGroup.dmg --keychain-profile "SnapGroup-Notary" --wait
-xcrun stapler staple SnapGroup.dmg
+xcrun notarytool submit build/SnapGroup.dmg --keychain-profile "SnapGroup-Notary" --wait
+xcrun stapler staple build/SnapGroup.dmg
 ```
 
 ---

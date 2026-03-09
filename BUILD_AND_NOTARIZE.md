@@ -73,7 +73,15 @@ set iconImage to current application'\''s NSImage'\''s alloc()'\''s initWithCont
 current application'\''s NSWorkspace'\''s sharedWorkspace()'\''s setIcon:iconImage forFile:dmgPath options:0'
 ```
 
-## Step 4: Notarize
+## Step 4: Sign the DMG
+
+`create-dmg` doesn't code-sign the DMG itself. Sign it before notarizing:
+
+```bash
+codesign --sign "Developer ID Application: Sami Baadarani (Y4M378P55D)" build/SnapGroup.dmg
+```
+
+## Step 5: Notarize
 
 ```bash
 xcrun notarytool submit build/SnapGroup.dmg \
@@ -83,7 +91,7 @@ xcrun notarytool submit build/SnapGroup.dmg \
 
 Usually takes 2-15 minutes. You'll see `status: Accepted` on success.
 
-## Step 5: Staple
+## Step 6: Staple
 
 ```bash
 xcrun stapler staple build/SnapGroup.dmg
@@ -91,7 +99,7 @@ xcrun stapler staple build/SnapGroup.dmg
 
 Embeds the notarization ticket so users can verify offline.
 
-## Step 6: Verify
+## Step 7: Verify
 
 ```bash
 spctl --assess --type open --context context:primary-signature build/SnapGroup.dmg
@@ -130,6 +138,7 @@ set iconPath to POSIX path of "'"$(pwd)"'/build/export/SnapGroup.app/Contents/Re
 set dmgPath to POSIX path of "'"$(pwd)"'/build/SnapGroup.dmg"
 set iconImage to current application'\''s NSImage'\''s alloc()'\''s initWithContentsOfFile:iconPath
 current application'\''s NSWorkspace'\''s sharedWorkspace()'\''s setIcon:iconImage forFile:dmgPath options:0' && \
+codesign --sign "Developer ID Application: Sami Baadarani (Y4M378P55D)" build/SnapGroup.dmg && \
 xcrun notarytool submit build/SnapGroup.dmg \
   --keychain-profile "SnapGroup-Notary" \
   --wait && \

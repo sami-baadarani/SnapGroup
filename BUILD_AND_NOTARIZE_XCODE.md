@@ -103,14 +103,26 @@ If you want to distribute as a DMG instead of a bare .app:
 brew install create-dmg  # if not already installed
 
 create-dmg \
-  --volname "SnapGroup" \
-  --window-size 660 400 \
-  --icon "SnapGroup.app" 180 200 \
-  --app-drop-link 480 200 \
-  --hide-extension "SnapGroup.app" \
-  --no-internet-enable \
-  "SnapGroup.dmg" \
-  "/path/to/exported/SnapGroup.app"
+   --volname "SnapGroup" \
+   --volicon "build/export/SnapGroup.app/Contents/Resources/AppIcon.icns" \
+   --window-size 660 400 \
+   --icon "SnapGroup.app" 180 200 \
+   --app-drop-link 480 200 \
+   --hide-extension "SnapGroup.app" \
+   --no-internet-enable \
+   "build/SnapGroup.dmg" \
+   "build/export/SnapGroup.app"
+```
+
+Set the app icon on the DMG file itself (visible in Finder before mounting):
+
+```bash
+osascript -e '
+use framework "AppKit"
+set iconPath to POSIX path of "'"$(pwd)"'/build/export/SnapGroup.app/Contents/Resources/AppIcon.icns"
+set dmgPath to POSIX path of "'"$(pwd)"'/build/SnapGroup.dmg"
+set iconImage to current application'\''s NSImage'\''s alloc()'\''s initWithContentsOfFile:iconPath
+current application'\''s NSWorkspace'\''s sharedWorkspace()'\''s setIcon:iconImage forFile:dmgPath options:0'
 ```
 
 Then notarize and staple the DMG:

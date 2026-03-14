@@ -794,9 +794,9 @@ These are the minimum requirements to distribute a signed, notarized build.
 - [x] **Wrap `print()` in `#if DEBUG`**
 - [x] **Fix deprecated `activate` API calls**
 - [x] **Remove dead build settings** (`REGISTER_APP_GROUPS`, `ENABLE_USER_SELECTED_FILES`, `OTHER_CODE_SIGN_FLAGS`)
-- [ ] **Build, sign, notarize, and verify** the app
-- [ ] **Create DMG** and notarize it
-- [ ] **Test on a clean Mac** (fresh user account, no Accessibility pre-granted)
+- [x] **Build, sign, notarize, and verify** the app
+- [x] **Create DMG** and notarize it
+- [x] **Test on a clean Mac** (fresh user account, no Accessibility pre-granted)
 
 ### Phase 2: Polish
 

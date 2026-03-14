@@ -7,9 +7,15 @@
 
 import Cocoa
 import HotKey
+import Sparkle
 
 class AppDelegate: NSObject, NSApplicationDelegate {
 
+    let updaterController = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: nil,
+        userDriverDelegate: nil
+    )
     let groupManager = GroupManager()
     var menuBarController: MenuBarController!
     var preferencesWindowController: PreferencesWindowController!
@@ -31,7 +37,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         preferencesWindowController = PreferencesWindowController()
 
         // Setup menu bar (pass self for preferences action)
-        menuBarController = MenuBarController(groupManager: groupManager, appDelegate: self)
+        menuBarController = MenuBarController(groupManager: groupManager, appDelegate: self, updaterController: updaterController)
 
         groupManager.onUserMessage = { [weak self] message in
             self?.showAlert(title: "SnapGroup", message: message)

@@ -6,16 +6,19 @@
 //
 
 import Cocoa
+import Sparkle
 
 class MenuBarController {
     private var statusItem: NSStatusItem!
     private let groupManager: GroupManager
     private weak var appDelegate: AppDelegate?
+    private let updaterController: SPUStandardUpdaterController
     private var isUpdatingMenu = false
 
-    init(groupManager: GroupManager, appDelegate: AppDelegate) {
+    init(groupManager: GroupManager, appDelegate: AppDelegate, updaterController: SPUStandardUpdaterController) {
         self.groupManager = groupManager
         self.appDelegate = appDelegate
+        self.updaterController = updaterController
         setupStatusItem()
 
         // Subscribe to group changes
@@ -126,6 +129,15 @@ class MenuBarController {
         let prefsItem = NSMenuItem(title: "Settings...", action: #selector(showPreferences), keyEquivalent: ",")
         prefsItem.target = self
         menu.addItem(prefsItem)
+
+        // Check for Updates
+        let checkForUpdatesItem = NSMenuItem(
+            title: "Check for Updates...",
+            action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)),
+            keyEquivalent: ""
+        )
+        checkForUpdatesItem.target = updaterController
+        menu.addItem(checkForUpdatesItem)
 
         // Quit
         let quitItem = NSMenuItem(title: "Quit SnapGroup", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")

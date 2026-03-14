@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		26305FB32F65651D00F9AFB5 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 26305FB22F65651D00F9AFB5 /* Sparkle */; };
 		26F0914E2EFD13D6001BE9CF /* HotKey in Frameworks */ = {isa = PBXBuildFile; productRef = 26F0914D2EFD13D6001BE9CF /* HotKey */; };
 /* End PBXBuildFile section */
 
@@ -28,6 +29,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				26F0914E2EFD13D6001BE9CF /* HotKey in Frameworks */,
+				26305FB32F65651D00F9AFB5 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -71,6 +73,7 @@
 			name = SnapGroup;
 			packageProductDependencies = (
 				26F0914D2EFD13D6001BE9CF /* HotKey */,
+				26305FB22F65651D00F9AFB5 /* Sparkle */,
 			);
 			productName = SnapGroup;
 			productReference = 26F0911D2EFD0F31001BE9CF /* SnapGroup.app */;
@@ -102,6 +105,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				26F0914C2EFD13D6001BE9CF /* XCRemoteSwiftPackageReference "HotKey" */,
+				26305FB12F65651D00F9AFB5 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 26F0911E2EFD0F31001BE9CF /* Products */;
@@ -271,6 +275,7 @@
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSAccessibilityUsageDescription = "SnapGroup needs Accessibility access to manage window groups and bring windows to the front.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025-2026 Sami Baadarani. All rights reserved.";
@@ -304,6 +309,7 @@
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSAccessibilityUsageDescription = "SnapGroup needs Accessibility access to manage window groups and bring windows to the front.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025-2026 Sami Baadarani. All rights reserved.";
@@ -348,6 +354,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		26305FB12F65651D00F9AFB5 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.9.0;
+			};
+		};
 		26F0914C2EFD13D6001BE9CF /* XCRemoteSwiftPackageReference "HotKey" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/soffes/HotKey";
@@ -359,6 +373,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		26305FB22F65651D00F9AFB5 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 26305FB12F65651D00F9AFB5 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
 		26F0914D2EFD13D6001BE9CF /* HotKey */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 26F0914C2EFD13D6001BE9CF /* XCRemoteSwiftPackageReference "HotKey" */;

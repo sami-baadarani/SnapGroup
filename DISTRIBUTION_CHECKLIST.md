@@ -338,16 +338,11 @@ See section 3.2.
 
 ### 6.1 LICENSE File
 
-- [ ] Create `LICENSE` in project root
-- Choose an appropriate license:
-  - **MIT** — if fully open source
-  - **GPL-3.0** — if you want derivative works to also be open source
-  - **Proprietary / Source-available** — if you want to show source but restrict redistribution
-  - **No license file** — if closed source (default is all rights reserved)
+- [x] Created `LICENSE` (MIT) in the project root — permissive reuse with attribution, the standard for free open-source macOS utilities.
 
 ### 6.2 Credits.rtf
 
-Create `SnapGroup/Credits.rtf` for the About panel:
+- [x] Created `SnapGroup/Credits.rtf` for the About panel — the actual file also credits **Sparkle** (added after this template was written). Template:
 
 ```rtf
 {\rtf1\ansi
@@ -360,11 +355,11 @@ https://github.com/soffes/HotKey\par
 }
 ```
 
-Add to the Xcode target's Copy Bundle Resources build phase.
+Auto-included via the project's synchronized file group — macOS shows it in the standard About panel automatically (no manual Copy Bundle Resources step needed). Note: it only becomes visible once the "About SnapGroup" menu item (§9.5) is added and the app is rebuilt.
 
 ### 6.3 PrivacyInfo.xcprivacy
 
-Create `SnapGroup/PrivacyInfo.xcprivacy`:
+- [x] Done — `SnapGroup/PrivacyInfo.xcprivacy` exists and is auto-included via the synchronized file group:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -396,6 +391,8 @@ Create `SnapGroup/PrivacyInfo.xcprivacy`:
 > Required since April 2024. Declares that UserDefaults is the only "required reason" API used. No data is collected, no tracking occurs, no network calls exist in the codebase.
 
 ### 6.4 Privacy Policy
+
+- [x] Created `PRIVACY.md` at the repo root (it accounts for Sparkle's update request).
 
 Even for free, non-tracking apps, a privacy policy builds trust and is required by some distribution channels.
 
@@ -731,13 +728,13 @@ These are the minimum requirements to distribute a signed, notarized build.
 - [ ] Add "About SnapGroup" to menu bar menu
 - [ ] Add "Launch at Login" toggle
 - [ ] Add first-launch onboarding window
-- [ ] Create `Credits.rtf` with HotKey attribution
+- [x] Create `Credits.rtf` with HotKey + Sparkle attribution
 - [x] Delete dead `ViewController.swift` and strip storyboard
 - [ ] ~~Fix `Thread.sleep` on main thread~~ Deferred (acceptable for hotkey retry)
 - [x] Fix dark mode layer color updates
 - [x] Add version numbering (semver: `1.0.0`)
-- [ ] Choose and add a `LICENSE` file
-- [ ] Write privacy policy
+- [x] Choose and add a `LICENSE` file (MIT)
+- [x] Write privacy policy (`PRIVACY.md`)
 
 ### Phase 3: Distribution Infrastructure
 

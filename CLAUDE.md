@@ -6,11 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Open `SnapGroup.xcodeproj` in Xcode and build with Cmd+B or run with Cmd+R.
 
-**Dependencies:** The project uses the HotKey Swift Package (https://github.com/soffes/HotKey) for global hotkey handling. It's already configured in the project.
+**Dependencies (Swift Package Manager, already configured):**
+- [HotKey](https://github.com/soffes/HotKey) — global hotkey handling
+- [Sparkle](https://github.com/sparkle-project/Sparkle) 2.x — over-the-air auto-updates
 
 ## Project Configuration
 
-- **macOS Deployment Target:** 26.1
+- **macOS Deployment Target:** 15.0
 - **App Sandbox:** Disabled (required for Accessibility API)
 - **LSUIElement:** YES (hides app from Dock and Cmd+Tab)
 - **Bundle ID:** dev.samib.SnapGroup
@@ -21,7 +23,7 @@ SnapGroup is a macOS menu bar app for window grouping. Users tag windows to grou
 
 ### Core Components
 
-**AppDelegate.swift** - Entry point. Initializes components, subscribes to settings changes, and manages HotKey instances via `rebindHotkeys()`.
+**AppDelegate.swift** - Entry point. Initializes components, subscribes to settings changes, manages HotKey instances via `rebindHotkeys()`, and owns the Sparkle `SPUStandardUpdaterController` (auto-updates).
 
 **GroupManager.swift** - Window management engine using macOS Accessibility API (AXUIElement). Key operations:
 - `TrackedWindow` struct caches `element`, `title`, and `pid` at tag time — menu bar and `getWindowTitles()` never make live AX queries
@@ -35,7 +37,7 @@ SnapGroup is a macOS menu bar app for window grouping. Users tag windows to grou
 
 **HotkeySettings.swift** - Singleton storing hotkey bindings in UserDefaults. Default hotkeys: Ctrl+[1-5] for recall, Ctrl+Shift+[1-5] for tag. Notifies subscribers via `onSettingsChanged` callback.
 
-**MenuBarController.swift** - NSStatusItem menu showing group status, window counts, and Preferences access.
+**MenuBarController.swift** - NSStatusItem menu showing group status, window counts, Settings, "Check for Updates…" (Sparkle), and "About SnapGroup" (native About panel via `NSApp.orderFrontStandardAboutPanel`, which shows the version and `Credits.rtf`).
 
 **PreferencesWindowController.swift** + **HotkeyRecorderView.swift** - Preferences window with click-to-record hotkey fields.
 
@@ -63,3 +65,5 @@ SnapGroup is a macOS menu bar app for window grouping. Users tag windows to grou
 - `isAccessibilityError()` distinguishes transient AX errors (`.cannotComplete`, `.apiDisabled` while permission is granted) from real permission denials
 
 **Window Validation:** `isWindowValid()` checks process alive → AX role check → keeps window if process is alive but AX is transiently unavailable (`.cannotComplete`, `.apiDisabled`).
+
+**Auto-Updates (Sparkle):** EdDSA-signed appcast (`appcast.xml`, hosted on GitHub `main`); `SUFeedURL` + `SUPublicEDKey` live in the root `Info.plist`, which is a partial plist merged into the app via `INFOPLIST_FILE` + `GENERATE_INFOPLIST_FILE`. Releases are Developer ID-signed + notarized DMGs — follow `new-release.md` to cut a release; `SPARKLE_SETUP.md` and `DISTRIBUTION_CHECKLIST.md` have the background.

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0"
+     xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"
+     xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>SnapGroup Updates</title>
+    <link>https://github.com/sami-baadarani/SnapGroup</link>
+    <description>Most recent updates to SnapGroup</description>
+    <language>en</language>
+
+    <!--
+      One <item> per release, newest at the TOP. v0.2.0 below is ready to publish.
+
+      For each FUTURE release, add a new <item> and fill:
+        - pubDate           RFC 822. Generate: date -u "+%a, %d %b %Y %H:%M:%S +0000"
+        - enclosure length  exact DMG size in bytes      (printed by sign_update)
+        - sparkle:edSignature                            (printed by sign_update)
+        - enclosure url     the GitHub Release asset URL for this version's tag
+
+      Rules:
+        - sparkle:version MUST increase every release (= CURRENT_PROJECT_VERSION).
+        - sparkle:minimumSystemVersion must be <= the deployment target (15.0).
+      See SHIPPING_UPDATES.md for the full flow.
+    -->
+
+    <item>
+      <title>Version 0.2.0</title>
+      <pubDate>Sat, 06 Jun 2026 11:09:18 +0000</pubDate>
+      <sparkle:version>2</sparkle:version>
+      <sparkle:shortVersionString>0.2.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h2>What's New in 0.2.0</h2>
+        <ul>
+          <li>Automatic updates via Sparkle — check for new versions from the menu bar with "Check for Updates&#8230;".</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/sami-baadarani/SnapGroup/releases/download/v0.2.0/SnapGroup.dmg"
+        length="1391116"
+        type="application/octet-stream"
+        sparkle:edSignature="uZqS7p39WZC3cJfMZSJGAtAVja0EuIilwlJXNvorenBNxD7fJ+YL8SSZ6rKmvTBTmMiNWqUeT3H9oL0yOShyCg==" />
+    </item>
+
+  </channel>
+</rss>

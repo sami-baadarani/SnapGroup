@@ -6,6 +6,6 @@
     <key>SUFeedURL</key>
     <string>https://raw.githubusercontent.com/sami-baadarani/SnapGroup/main/appcast.xml</string>
     <key>SUPublicEDKey</key>
-    <string>PLACEHOLDER_REPLACE_WITH_EDDSA_PUBLIC_KEY</string>
+    <string>OCFWkbUliNc3co5U5fsfnM0StmWkUZbh221BFBOUYP4=</string>
 </dict>
 </plist>

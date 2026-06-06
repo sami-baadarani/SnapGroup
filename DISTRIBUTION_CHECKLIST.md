@@ -436,68 +436,7 @@ A simple landing page with:
 
 Options: GitHub Pages (free), Netlify, Vercel, or a custom domain.
 
-### 7.3 Homebrew Cask
-
-**Self-hosted tap (quick, no approval needed):**
-
-```bash
-# Create your tap repo: github.com/yourusername/homebrew-tap
-# Add a Cask formula: Casks/snapgroup.rb
-```
-
-```ruby
-cask "snapgroup" do
-  version "1.0.0"
-  sha256 "SHA256_OF_DMG"
-
-  url "https://github.com/yourusername/SnapGroup/releases/download/v#{version}/SnapGroup.dmg"
-  name "SnapGroup"
-  desc "Window grouping utility with hotkey recall"
-  homepage "https://github.com/yourusername/SnapGroup"
-
-  depends_on macos: ">= :sonoma"  # adjust to match your deployment target
-
-  app "SnapGroup.app"
-
-  zap trash: [
-    "~/Library/Preferences/dev.samib.SnapGroup.plist",
-  ]
-end
-```
-
-Users install with:
-```bash
-brew tap yourusername/tap
-brew install --cask snapgroup
-```
-
-**Official Homebrew Cask (submit once established):**
-
-Submit a PR to [homebrew-cask](https://github.com/Homebrew/homebrew-cask). Requirements:
-- App must be notable (GitHub stars, downloads, press coverage help)
-- Stable, versioned releases
-- Notarized DMG
-
-### 7.4 If Paid: Payment Platforms
-
-If you decide to charge for SnapGroup:
-
-| Platform | Cut | Notes |
-|----------|-----|-------|
-| [Lemon Squeezy](https://lemonsqueezy.com) | 5% + payment fees | License key delivery, handles VAT/tax globally |
-| [Paddle](https://paddle.com) | 5-10% + payment fees | Merchant of record, handles VAT |
-| [Gumroad](https://gumroad.com) | 10% | Simple setup, less suited for recurring licenses |
-
-All three integrate with Sparkle for license-gated updates. Lemon Squeezy is currently the most popular for indie macOS apps.
-
-### 7.5 SetApp
-
-[SetApp](https://setapp.com/developers) is a subscription bundle for macOS apps. Revenue is based on usage share. Good for discovery but requires:
-- Stable, polished app
-- Sandbox-compatible OR Developer ID signed
-- Application and review process
-
-### 7.6 App Directories & Listings
+### 7.3 App Directories & Listings
 
 Submit to free directories once the app is stable:
 - [macOS Setup](https://github.com/nikitavoloboev/my-mac-os) and similar curated lists
@@ -530,31 +469,19 @@ Relevant subreddits:
 - r/productivityapps
 - r/commandline (if open source with CLI aspects)
 
-### 8.4 Positioning vs Competitors
-
-| App | Difference from SnapGroup |
-|-----|--------------------------|
-| Rectangle / Magnet | Window *positioning* (tiling), not grouping |
-| Mission Control / Spaces | Desktop switching with animations; SnapGroup has instant Z-order recall, no desktop switching |
-| Stage Manager | Apple's approach; limited, different UX |
-| BetterTouchTool | Swiss-army knife; SnapGroup is focused and lightweight |
-| Moom | Window layout management; broader scope |
-
-Key differentiator: **SnapGroup is the only app focused purely on window *grouping* with instant hotkey recall via Z-order manipulation — no desktop switching, no tiling, no animations.**
-
-### 8.5 README
+### 8.4 README
 
 Ensure the GitHub README includes:
 - One-line description and key value proposition
 - GIF/video showing the app in action (tag → recall flow)
-- Install instructions (DMG download + Homebrew)
+- Install instructions (DMG download)
 - Default hotkeys table
 - How it works (brief technical explanation)
 - Screenshots
 - Build from source instructions
 - License
 
-### 8.6 SEO / Discoverability
+### 8.5 SEO / Discoverability
 
 - GitHub repo description and topics: `macos`, `window-manager`, `productivity`, `swift`, `accessibility-api`, `menu-bar-app`
 - Website title: "SnapGroup — Instant Window Groups for macOS"
@@ -820,7 +747,6 @@ These are the minimum requirements to distribute a signed, notarized build.
 - [ ] Integrate Sparkle for auto-updates
 - [ ] Generate EdDSA keys and configure appcast
 - [ ] Add "Check for Updates..." menu item
-- [ ] Create Homebrew Cask formula (self-hosted tap)
 - [ ] Set up landing page / GitHub Pages site
 
 ### Phase 4: Launch
@@ -832,7 +758,6 @@ These are the minimum requirements to distribute a signed, notarized build.
 - [ ] Post Show HN
 - [ ] Post to r/macapps
 - [ ] Submit to AlternativeTo and curated lists
-- [ ] Submit Homebrew Cask PR to official repo (once notable)
 
 ---
 

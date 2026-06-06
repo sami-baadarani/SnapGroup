@@ -130,6 +130,11 @@ class MenuBarController {
         prefsItem.target = self
         menu.addItem(prefsItem)
 
+        // About
+        let aboutItem = NSMenuItem(title: "About SnapGroup", action: #selector(showAbout), keyEquivalent: "")
+        aboutItem.target = self
+        menu.addItem(aboutItem)
+
         // Check for Updates
         let checkForUpdatesItem = NSMenuItem(
             title: "Check for Updates...",
@@ -170,5 +175,10 @@ class MenuBarController {
 
     @objc private func showPreferences() {
         appDelegate?.showPreferences()
+    }
+
+    @objc private func showAbout() {
+        NSApp.activate()
+        NSApp.orderFrontStandardAboutPanel(nil)
     }
 }

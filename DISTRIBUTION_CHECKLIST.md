@@ -355,7 +355,7 @@ https://github.com/soffes/HotKey\par
 }
 ```
 
-Auto-included via the project's synchronized file group — macOS shows it in the standard About panel automatically (no manual Copy Bundle Resources step needed). Note: it only becomes visible once the "About SnapGroup" menu item (§9.5) is added and the app is rebuilt.
+Auto-included via the project's synchronized file group — macOS shows it in the standard About panel automatically (no manual Copy Bundle Resources step needed). The "About SnapGroup" menu item that opens that panel is now in place (§9.5); it appears after a rebuild.
 
 ### 6.3 PrivacyInfo.xcprivacy
 
@@ -523,9 +523,9 @@ Current state: The app checks permission on launch with `prompt: false`, then pr
 
 ### 9.5 About Window
 
-- [ ] Add "About SnapGroup" item to the status bar menu
-- [ ] Wire to `NSApp.orderFrontStandardAboutPanel(nil)`
-- Since `LSUIElement = YES`, the standard About menu in the storyboard menu bar is never visible
+- [x] Added "About SnapGroup" item to the status bar menu (`MenuBarController.swift`, between "Settings…" and "Check for Updates…")
+- [x] Wired to `NSApp.orderFrontStandardAboutPanel(nil)` (calls `NSApp.activate()` first so the panel comes to the front)
+- The native panel auto-shows the app icon, **Version 0.2.0 (2)**, the copyright string, and a Credits… button (HotKey + Sparkle, from `Credits.rtf`). Since `LSUIElement = YES`, the standard About menu in the storyboard menu bar is never visible.
 
 ### 9.6 Uninstall
 
@@ -725,7 +725,7 @@ These are the minimum requirements to distribute a signed, notarized build.
 ### Phase 2: Polish
 
 - [x] Rename "Preferences" → "Settings"
-- [ ] Add "About SnapGroup" to menu bar menu
+- [x] Add "About SnapGroup" to menu bar menu (opens native About panel with version + credits)
 - [ ] Add "Launch at Login" toggle
 - [ ] Add first-launch onboarding window
 - [x] Create `Credits.rtf` with HotKey + Sparkle attribution

@@ -149,7 +149,7 @@ Filtered to what matters for Developer ID distribution. Organized by priority.
 | 2.16 | Hardcoded pixel layout in Preferences | Deferred — Auto Layout refactor is a larger task |
 | 2.17 | `runModal()` blocking alerts | Deferred — `runModal()` is the correct approach for a windowless menu bar app; `beginSheetModal` requires a window |
 | 2.18 | No confirmation on "Clear All Groups" | Done — added confirmation alert |
-| 2.19 | HotKey pinned to revision, not version | Deferred — requires checking for a suitable version tag |
+| 2.19 | HotKey pinned to revision, not version | Done — pinned to `v0.2.1` via `upToNextMinorVersion` (`>= 0.2.1, < 0.3.0`); the revision was already exactly the `v0.2.1` tag |
 | 2.20 | Version numbering | Done — changed to `1.0.0` (semver) |
 
 > **Note:** Items from `APP_STORE_READINESS.md` that are App-Store-only (sandbox requirement, `LSApplicationCategoryType`, App Store Connect metadata, App Review notes, privacy nutrition labels) are intentionally excluded. The semi-private `AXEnhancedUserInterface` attribute (used for Chromium browser compatibility) is fine for Developer ID distribution.
@@ -762,5 +762,5 @@ These are the minimum requirements to distribute a signed, notarized build.
 
 | Dependency | License | Notes |
 |------------|---------|-------|
-| [HotKey](https://github.com/soffes/HotKey) | MIT | Global hotkey handling via Carbon `RegisterEventHotKey`. Pinned to revision — consider pinning to version tag. |
+| [HotKey](https://github.com/soffes/HotKey) | MIT | Global hotkey handling via Carbon `RegisterEventHotKey`. Pinned to `v0.2.1` via `upToNextMinorVersion`. |
 | [Sparkle](https://sparkle-project.org/) | MIT | Auto-update framework. **Not yet added** — see Section 4. |

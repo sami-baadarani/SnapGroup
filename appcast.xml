@@ -24,6 +24,25 @@
     -->
 
     <item>
+      <title>Version 0.3.0</title>
+      <pubDate>Sun, 07 Jun 2026 08:55:04 +0000</pubDate>
+      <sparkle:version>3</sparkle:version>
+      <sparkle:shortVersionString>0.3.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h2>What's New in 0.3.0</h2>
+        <ul>
+          <li>New "About SnapGroup" menu bar item — opens the native About panel showing the version and credits.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/sami-baadarani/SnapGroup/releases/download/v0.3.0/SnapGroup.dmg"
+        length="1392682"
+        type="application/octet-stream"
+        sparkle:edSignature="Up82jZLpQBDrA8XKU2lM7xsOAhFXzEAc5ZdsYl7LGyrBP2+j7tbFblfMjxTcSfr5sgcwkVGcYZoOw+C6S8ejCg==" />
+    </item>
+
+    <item>
       <title>Version 0.2.0</title>
       <pubDate>Sat, 06 Jun 2026 11:09:18 +0000</pubDate>
       <sparkle:version>2</sparkle:version>

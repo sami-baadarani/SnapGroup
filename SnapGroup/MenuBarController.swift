@@ -7,6 +7,7 @@
 
 import Cocoa
 import Sparkle
+import ServiceManagement
 
 class MenuBarController {
     private var statusItem: NSStatusItem!
@@ -130,6 +131,12 @@ class MenuBarController {
         prefsItem.target = self
         menu.addItem(prefsItem)
 
+        // Launch at Login
+        let launchItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
+        launchItem.target = self
+        launchItem.state = (SMAppService.mainApp.status == .enabled) ? .on : .off
+        menu.addItem(launchItem)
+
         // About
         let aboutItem = NSMenuItem(title: "About SnapGroup", action: #selector(showAbout), keyEquivalent: "")
         aboutItem.target = self
@@ -175,6 +182,57 @@ class MenuBarController {
 
     @objc private func showPreferences() {
         appDelegate?.showPreferences()
+    }
+
+    @objc private func toggleLaunchAtLogin() {
+        let service = SMAppService.mainApp
+
+        switch service.status {
+        case .enabled:
+            do {
+                try service.unregister()
+                debugLog("Launch at Login: unregistered")
+            } catch {
+                debugLog("Launch at Login: unregister failed: \(error)")
+                presentLaunchAtLoginError(error, action: "disable")
+            }
+
+        case .requiresApproval:
+            // User disabled SnapGroup under System Settings > Login Items; can't
+            // flip it back programmatically — send them to the Login Items pane.
+            debugLog("Launch at Login: requires approval, opening System Settings")
+            SMAppService.openSystemSettingsLoginItems()
+
+        case .notRegistered, .notFound:
+            do {
+                try service.register()
+                debugLog("Launch at Login: registered, status now \(service.status.rawValue)")
+                // register() can succeed but land in .requiresApproval — nudge the user.
+                if service.status == .requiresApproval {
+                    SMAppService.openSystemSettingsLoginItems()
+                }
+            } catch {
+                debugLog("Launch at Login: register failed: \(error)")
+                presentLaunchAtLoginError(error, action: "enable")
+            }
+
+        @unknown default:
+            debugLog("Launch at Login: unknown status \(service.status.rawValue)")
+        }
+
+        // Rebuild so the checkmark reflects the new status.
+        updateMenu()
+    }
+
+    private func presentLaunchAtLoginError(_ error: Error, action: String) {
+        let alert = NSAlert()
+        alert.messageText = "Couldn't \(action) Launch at Login"
+        alert.informativeText = error.localizedDescription
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "OK")
+
+        NSApp.activate()
+        alert.runModal()
     }
 
     @objc private func showAbout() {

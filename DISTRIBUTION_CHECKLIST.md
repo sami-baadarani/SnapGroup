@@ -517,9 +517,9 @@ Current state: The app checks permission on launch with `prompt: false`, then pr
 
 ### 9.4 Launch at Login
 
-- [ ] Add a "Launch at Login" toggle to the menu bar menu
-- [ ] Use `SMAppService.mainApp` (ServiceManagement framework, macOS 13+)
-- No helper app or LaunchAgent needed with this API
+- [x] Added a "Launch at Login" toggle to the menu bar menu (`MenuBarController.swift`, directly below "Settings…", with a checkmark reflecting the live state)
+- [x] Uses `SMAppService.mainApp` (ServiceManagement framework) — `register()`/`unregister()`, with `.requiresApproval` routed to `SMAppService.openSystemSettingsLoginItems()`. No UserDefaults key (the system status is the source of truth)
+- No helper app or LaunchAgent needed with this API; no entitlement required (app is non-sandboxed)
 
 ### 9.5 About Window
 
@@ -726,11 +726,11 @@ These are the minimum requirements to distribute a signed, notarized build.
 
 - [x] Rename "Preferences" → "Settings"
 - [x] Add "About SnapGroup" to menu bar menu (opens native About panel with version + credits)
-- [ ] Add "Launch at Login" toggle
+- [x] Add "Launch at Login" toggle
 - [ ] Add first-launch onboarding window
 - [x] Create `Credits.rtf` with HotKey + Sparkle attribution
 - [x] Delete dead `ViewController.swift` and strip storyboard
-- [ ] ~~Fix `Thread.sleep` on main thread~~ Deferred (acceptable for hotkey retry)
+- [x] ~~Fix `Thread.sleep` on main thread~~ Deferred (acceptable for hotkey retry)
 - [x] Fix dark mode layer color updates
 - [x] Add version numbering (semver: `1.0.0`)
 - [x] Choose and add a `LICENSE` file (MIT)
